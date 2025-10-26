@@ -1,6 +1,4 @@
 #!/bin/sh
-# boot.sh
-
 # This script runs database migrations and then starts the Gunicorn server.
 
 echo "Running database migrations..."
