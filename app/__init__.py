@@ -1,5 +1,3 @@
-# app/__init__.py
-
 from flask import Flask, jsonify
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
