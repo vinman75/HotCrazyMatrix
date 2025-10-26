@@ -1,0 +1,17 @@
+# Virtual environments
+.venv/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# files
+bundle_project.py
+project_bundle.txt

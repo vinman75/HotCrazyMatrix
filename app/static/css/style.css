@@ -1,0 +1,26 @@
+/* Make the list of girls scrollable if it gets too long */
+#girl-list-container {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Remove the blue box-shadow from the accordion button when it's active */
+.accordion-button:focus {
+    box-shadow: none;
+}
+
+/*
+  Set a default height for the chart container on desktop.
+*/
+#chart-card-container {
+    min-height: 500px; /* Default height for larger screens */
+}
+
+
+/* Mobile-specific styles */
+@media (max-width: 767.98px) {
+    #chart-card-container {
+        /* On mobile, override with a taller, viewport-based height */
+        min-height: 60vh; 
+    }
+}

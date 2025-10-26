@@ -1,0 +1,42 @@
+# ==================================================================================
+# FILE: .dockerignore
+# ==================================================================================
+# .dockerignore
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and databases (we will manage the db via a volume)
+*.log
+*.sqlite3
+instance/
+
+# Environment variables (will be passed via docker-compose)
+.env
+.flaskenv
+
+# IDE / Editor specific
+.idea/
+.vscode/
+
+# files
+hotcrazymatrix.tar
+bundle_project.py
+project_bundle.txt
+hot_crazy_matrix_interface.png

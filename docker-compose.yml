@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    # Use the image you have already imported into Portainer
+    image: hotcrazymatrix:latest
+    
+    # Give the container a consistent name
+    container_name: hot-crazy-matrix
+    
+    # Map port 8095 on your NAS to port 8000 in the container
+    ports:
+      - "8095:8000"
+      
+    # Use a named volume to persist the database
+    volumes:
+      - hotcrazy_db_data:/app/instance
+      
+    # Set the timezone for the container environment
+    environment:
+      - TZ=Australia/Sydney
+      
+    # Ensure the container restarts automatically
+    restart: unless-stopped
+
+# Define the named volume that will store your database
+volumes:
+  hotcrazy_db_data:
