@@ -16,7 +16,7 @@ services:
     volumes:
       - hotcrazy_db_data:/app/instance
       
-    # Set the timezone for the container environment (I am in Sydndey Australia, you can chnage yours as required)
+    # Set the timezone for the container environment (I am in Sydndey Australia, you can change yours as required)
     environment:
       - TZ=Australia/Sydney
       
