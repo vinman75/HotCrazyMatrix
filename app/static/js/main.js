@@ -5,11 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let preloadedImages = {}; // Will store { light: Image, dark: Image }
 
     // --- DOM ELEMENT SELECTORS ---
+    const htmlEl = document.documentElement;
     const girlListContainer = document.getElementById('girl-list-container');
     const addGirlForm = document.getElementById('add-girl-form');
     const newGirlNameInput = document.getElementById('new-girl-name');
     const averageScoresContainer = document.getElementById('average-scores-container');
-    const editGirlModal = new bootstrap.Modal(document.getElementById('editGirlModal'));
+    const editGirlModalEl = document.getElementById('editGirlModal');
+    const editGirlModal = editGirlModalEl ? new bootstrap.Modal(editGirlModalEl) : null;
     const editGirlForm = document.getElementById('edit-girl-form');
     const editGirlIdInput = document.getElementById('edit-girl-id');
     const editGirlNameInput = document.getElementById('edit-girl-name');
@@ -20,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const crazyValueDisplay = document.getElementById('crazy-value-display');
     const plotDateInput = document.getElementById('plot-date');
     const plotNotesInput = document.getElementById('plot-notes');
-    const editPlotModal = new bootstrap.Modal(document.getElementById('editPlotModal'));
+    const editPlotModalEl = document.getElementById('editPlotModal');
+    const editPlotModal = editPlotModalEl ? new bootstrap.Modal(editPlotModalEl) : null;
     const editPlotForm = document.getElementById('edit-plot-form');
     const editPlotIdInput = document.getElementById('edit-plot-id');
     const editHotScoreInput = document.getElementById('edit-plot-hot-score');
@@ -33,24 +36,42 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggler = document.getElementById('theme-toggler');
     const lightIcon = document.getElementById('theme-light-icon');
     const darkIcon = document.getElementById('theme-dark-icon');
-    const htmlEl = document.documentElement;
+    const chartCanvas = document.getElementById('hotCrazyChart');
+    const isDashboardPage = Boolean(chartCanvas);
 
     // --- THEME MANAGEMENT ---
     function applyTheme(theme) {
         htmlEl.setAttribute('data-bs-theme', theme);
-        if (theme === 'dark') { darkIcon.classList.remove('d-none'); lightIcon.classList.add('d-none'); }
-        else { darkIcon.classList.add('d-none'); lightIcon.classList.remove('d-none'); }
+        if (lightIcon && darkIcon) {
+            if (theme === 'dark') {
+                darkIcon.classList.remove('d-none');
+                lightIcon.classList.add('d-none');
+            } else {
+                darkIcon.classList.add('d-none');
+                lightIcon.classList.remove('d-none');
+            }
+        }
     }
     const savedTheme = localStorage.getItem('theme') || 'dark';
     applyTheme(savedTheme);
-    themeToggler.addEventListener('click', () => {
-        const newTheme = htmlEl.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('theme', newTheme);
-        applyTheme(newTheme);
-        if (chart) { chart.destroy(); }
-        initializeChart();
-        updateChart();
-    });
+    if (themeToggler) {
+        themeToggler.addEventListener('click', () => {
+            const newTheme = htmlEl.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+            if (isDashboardPage) {
+                if (chart) {
+                    chart.destroy();
+                }
+                initializeChart();
+                updateChart();
+            }
+        });
+    }
+
+    if (!isDashboardPage) {
+        return;
+    }
 
     async function apiRequest(url, method = 'GET', body = null) {
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -249,8 +270,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function initializeChart() {
+        if (!chartCanvas) { return; }
         const themeOptions = getThemeOptions();
-        const ctx = document.getElementById('hotCrazyChart').getContext('2d');
+        const ctx = chartCanvas.getContext('2d');
         chart = new Chart(ctx, {
             type: 'scatter', plugins: [chartAreaPainter],
             data: { datasets: [ { type: 'line', label: 'Hot-Crazy Line', data: [{x: 0, y: 4}, {x: 10, y: 10}], borderColor: themeOptions.lineColor, borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false, tension: 0.1, order: 1 } ] },
