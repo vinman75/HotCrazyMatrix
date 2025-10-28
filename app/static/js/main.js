@@ -37,11 +37,50 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightIcon = document.getElementById('theme-light-icon');
     const darkIcon = document.getElementById('theme-dark-icon');
     const chartCanvas = document.getElementById('hotCrazyChart');
+    const themeMetaTag = document.querySelector('meta[name="theme-color"]');
     const isDashboardPage = Boolean(chartCanvas);
 
     // --- THEME MANAGEMENT ---
+    function readCookieTheme() {
+        const match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+        return match ? match[1] : null;
+    }
+
+    function getSavedTheme() {
+        let theme = 'dark';
+        try {
+            const stored = localStorage.getItem('theme');
+            if (stored) {
+                theme = stored;
+            } else {
+                const cookieTheme = readCookieTheme();
+                if (cookieTheme) {
+                    theme = cookieTheme;
+                }
+            }
+        } catch (err) {
+            const fallbackCookieTheme = readCookieTheme();
+            if (fallbackCookieTheme) {
+                theme = fallbackCookieTheme;
+            }
+        }
+        return theme;
+    }
+
+    function persistTheme(theme) {
+        try {
+            localStorage.setItem('theme', theme);
+        } catch (err) {
+            // Ignore storage access errors
+        }
+        document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+
     function applyTheme(theme) {
         htmlEl.setAttribute('data-bs-theme', theme);
+        if (themeMetaTag) {
+            themeMetaTag.setAttribute('content', theme === 'dark' ? '#0d1117' : '#f8f9fa');
+        }
         if (lightIcon && darkIcon) {
             if (theme === 'dark') {
                 darkIcon.classList.remove('d-none');
@@ -52,12 +91,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    const savedTheme = localStorage.getItem('theme') || 'dark';
+    const savedTheme = getSavedTheme();
+    persistTheme(savedTheme);
     applyTheme(savedTheme);
     if (themeToggler) {
         themeToggler.addEventListener('click', () => {
             const newTheme = htmlEl.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
+            persistTheme(newTheme);
             applyTheme(newTheme);
             if (isDashboardPage) {
                 if (chart) {
@@ -77,24 +117,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
         const options = {
             method,
-            headers: { 
+            headers: {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken // Send token with each API request
             }
         };
         if (body) options.body = JSON.stringify(body);
-        
+
         const response = await fetch(url, options);
-        
+
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ 
+            const errorData = await response.json().catch(() => ({
                 message: `Request failed with status: ${response.status}`
             }));
             throw new Error(errorData.message || response.statusText);
         }
         return response.status === 204 ? null : response.json();
     }
-    
+
     // **** Image Inversion and Preloading Logic ****
     function invertImage(image) {
         const canvas = document.createElement('canvas');
@@ -183,64 +223,64 @@ document.addEventListener('DOMContentLoaded', () => {
     function getThemeOptions() {
         const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
         const zones = [
-            { 
+            {
                 points: [
                     { x: 0, y: 10 },
                     { x: 5, y: 10 },
                     { x: 5, y: 4 },
                     { x: 0, y: 4 }
-                ], 
-                label: 'No-Go Zone', 
+                ],
+                label: 'No-Go Zone',
                 imageKey: 'no-go-zone'
             },
-            { 
+            {
                 points: [
                     { x: 5, y: 10 },
                     { x: 10, y: 10 },
                     { x: 8, y: 8.8 },
                     { x: 5, y: 7 }
-                ], 
-                label: 'Danger Zone', 
+                ],
+                label: 'Danger Zone',
                 imageKey: 'danger-zone'
             },
-            { 
+            {
                 points: [
                     { x: 5, y: 7 },
                     { x: 8, y: 8.8 },
                     { x: 8, y: 4 },
                     { x: 5, y: 4 }
-                ], 
-                label: 'Fun Zone', 
+                ],
+                label: 'Fun Zone',
                 imageKey: 'fun-zone'
             },
-            { 
+            {
                 points: [
                     { x: 8, y: 8.8 },
                     { x: 10, y: 10 },
-                    { x: 10, y: 6 },
-                    { x: 8, y: 6 }
-                ], 
-                label: 'Date Zone', 
+                    { x: 10, y: 7 },
+                    { x: 8, y: 7 }
+                ],
+                label: 'Date Zone',
                 imageKey: 'date-zone'
             },
-            { 
+            {
                 points: [
-                    { x: 8, y: 6 },
-                    { x: 10, y: 6 },
+                    { x: 8, y: 7 },
+                    { x: 10, y: 7 },
                     { x: 10, y: 5 },
                     { x: 8, y: 5 }
-                ], 
-                label: 'Wife Zone', 
+                ],
+                label: 'Wife Zone',
                 imageKey: 'wife-zone'
             },
-            { 
+            {
                 points: [
                     { x: 8, y: 5 },
                     { x: 10, y: 5 },
                     { x: 10, y: 4 },
                     { x: 8, y: 4 }
-                ], 
-                label: 'Unicorn Zone', 
+                ],
+                label: 'Unicorn Zone',
                 imageKey: 'unicorn-zone'
             }
         ];
@@ -353,11 +393,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = averages[id];
                 const p = document.createElement('p');
                 p.className = 'd-flex align-items-center mb-2';
-    
+
                 if (data) {
                     const zone = getZoneForPoint(data.avg_hot, data.avg_crazy);
                     const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-                    
+
                     let iconHtml = '';
                     if (zone && zone.imageKey && preloadedImages[zone.imageKey]) {
                         const imageSet = preloadedImages[zone.imageKey];
@@ -366,9 +406,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             iconHtml = `<img src="${image.src}" alt="${zone.label} icon" width="20" height="20" class="mx-2">`;
                         }
                     }
-    
+
                     const zoneLabel = zone ? zone.label : '';
-    
+
                     // Order: Name, Icon, Zone
                     p.innerHTML = `<strong>${girlName}:</strong> ${iconHtml} ${zoneLabel}`;
                 } else {
@@ -382,98 +422,98 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    addGirlForm.addEventListener('submit', async (e) => { 
-        e.preventDefault(); 
-        const name = newGirlNameInput.value.trim(); 
-        if (name) { 
+    addGirlForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = newGirlNameInput.value.trim();
+        if (name) {
             try {
-                await apiRequest('/api/girls', 'POST', { name }); 
-                newGirlNameInput.value = ''; 
-                await fetchAndRenderGirls(); 
+                await apiRequest('/api/girls', 'POST', { name });
+                newGirlNameInput.value = '';
+                await fetchAndRenderGirls();
             } catch (error) {
                 alert(`Error adding girl: ${error.message}`);
             }
-        } 
+        }
     });
 
-    girlListContainer.addEventListener('click', async (e) => { 
-        const checkbox = e.target.closest('.girl-checkbox'); 
-        const deleteBtn = e.target.closest('.delete-girl-btn'); 
-        const editBtn = e.target.closest('.edit-girl-btn'); 
+    girlListContainer.addEventListener('click', async (e) => {
+        const checkbox = e.target.closest('.girl-checkbox');
+        const deleteBtn = e.target.closest('.delete-girl-btn');
+        const editBtn = e.target.closest('.edit-girl-btn');
         if (checkbox) {
             updateChart();
-        } 
-        if (deleteBtn) { 
-            if (confirm('Are you sure you want to delete this girl and all her data?')) { 
+        }
+        if (deleteBtn) {
+            if (confirm('Are you sure you want to delete this girl and all her data?')) {
                 try {
-                    await apiRequest(`/api/girls/${deleteBtn.dataset.id}`, 'DELETE'); 
-                    await fetchAndRenderGirls(); 
-                    updateChart(); 
+                    await apiRequest(`/api/girls/${deleteBtn.dataset.id}`, 'DELETE');
+                    await fetchAndRenderGirls();
+                    updateChart();
                 } catch (error) {
                     alert(`Error deleting girl: ${error.message}`);
                 }
-            } 
-        } 
-        if (editBtn) { 
-            editGirlIdInput.value = editBtn.dataset.id; 
-            editGirlNameInput.value = editBtn.dataset.name; 
-            editGirlModal.show(); 
-        } 
+            }
+        }
+        if (editBtn) {
+            editGirlIdInput.value = editBtn.dataset.id;
+            editGirlNameInput.value = editBtn.dataset.name;
+            editGirlModal.show();
+        }
     });
 
-    editGirlForm.addEventListener('submit', async (e) => { 
-        e.preventDefault(); 
-        const name = editGirlNameInput.value.trim(); 
-        if (name) { 
+    editGirlForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = editGirlNameInput.value.trim();
+        if (name) {
             try {
-                await apiRequest(`/api/girls/${editGirlIdInput.value}`, 'PUT', { name }); 
-                editGirlModal.hide(); 
-                await fetchAndRenderGirls(); 
-                updateChart(); 
+                await apiRequest(`/api/girls/${editGirlIdInput.value}`, 'PUT', { name });
+                editGirlModal.hide();
+                await fetchAndRenderGirls();
+                updateChart();
             } catch (error) {
                 alert(`Error updating girl: ${error.message}`);
             }
-        } 
+        }
     });
 
-    async function handleChartClick(evt) { 
-        const elements = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true).filter(e => e.datasetIndex !== 0); 
-        if (elements.length > 0) { 
-            const { datasetIndex, index } = elements[0]; 
-            const plotData = chart.data.datasets[datasetIndex].data[index]; 
-            editPlotIdInput.value = plotData.id; editHotScoreInput.value = plotData.x; editCrazyScoreInput.value = plotData.y; 
-            editHotValueDisplay.textContent = plotData.x; editCrazyValueDisplay.textContent = plotData.y; 
-            editPlotDateInput.value = plotData.date.slice(0, 16); editPlotNotesInput.value = plotData.notes; 
-            editPlotModal.show(); 
-        } else { 
-            const selectedGirlIds = Array.from(document.querySelectorAll('.girl-checkbox:checked')).map(cb => cb.value); 
-            if (selectedGirlIds.length !== 1) { 
-                alert("Please select exactly one girl from the list to add a point for."); return; 
-            } 
+    async function handleChartClick(evt) {
+        const elements = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true).filter(e => e.datasetIndex !== 0);
+        if (elements.length > 0) {
+            const { datasetIndex, index } = elements[0];
+            const plotData = chart.data.datasets[datasetIndex].data[index];
+            editPlotIdInput.value = plotData.id; editHotScoreInput.value = plotData.x; editCrazyScoreInput.value = plotData.y;
+            editHotValueDisplay.textContent = plotData.x; editCrazyValueDisplay.textContent = plotData.y;
+            editPlotDateInput.value = plotData.date.slice(0, 16); editPlotNotesInput.value = plotData.notes;
+            editPlotModal.show();
+        } else {
+            const selectedGirlIds = Array.from(document.querySelectorAll('.girl-checkbox:checked')).map(cb => cb.value);
+            if (selectedGirlIds.length !== 1) {
+                alert("Please select exactly one girl from the list to add a point for."); return;
+            }
             const hotScore = parseFloat(chart.scales.x.getValueForPixel(evt.offsetX).toFixed(1));
             const crazyScore = parseFloat(chart.scales.y.getValueForPixel(evt.offsetY).toFixed(1));
-            if (hotScore >= 0 && hotScore <= 10 && crazyScore >= 4 && crazyScore <= 10) { 
-                if (confirm(`Add point (Hot: ${hotScore}, Crazy: ${crazyScore}) for the selected girl?`)) { 
+            if (hotScore >= 0 && hotScore <= 10 && crazyScore >= 4 && crazyScore <= 10) {
+                if (confirm(`Add point (Hot: ${hotScore}, Crazy: ${crazyScore}) for the selected girl?`)) {
                     try {
-                        await apiRequest('/api/plots', 'POST', { girl_id: parseInt(selectedGirlIds[0]), hot_score: hotScore, crazy_score: crazyScore, plot_date: new Date().toISOString(), notes: '' }); 
-                        updateChart(); 
+                        await apiRequest('/api/plots', 'POST', { girl_id: parseInt(selectedGirlIds[0]), hot_score: hotScore, crazy_score: crazyScore, plot_date: new Date().toISOString(), notes: '' });
+                        updateChart();
                     } catch (error) {
                         alert(`Error adding point: ${error.message}`);
                     }
-                } 
-            } 
-        } 
+                }
+            }
+        }
     }
 
-    addPlotForm.addEventListener('submit', async (e) => { 
-        e.preventDefault(); 
-        const selectedGirlIds = Array.from(document.querySelectorAll('.girl-checkbox:checked')).map(cb => cb.value); 
-        if (selectedGirlIds.length !== 1) { 
-            alert("Please select exactly one girl from the list to add a point for."); return; 
-        } 
+    addPlotForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const selectedGirlIds = Array.from(document.querySelectorAll('.girl-checkbox:checked')).map(cb => cb.value);
+        if (selectedGirlIds.length !== 1) {
+            alert("Please select exactly one girl from the list to add a point for."); return;
+        }
         try {
-            await apiRequest('/api/plots', 'POST', { girl_id: parseInt(selectedGirlIds[0]), hot_score: parseFloat(hotScoreInput.value), crazy_score: parseFloat(crazyScoreInput.value), plot_date: plotDateInput.value ? new Date(plotDateInput.value).toISOString() : new Date().toISOString(), notes: plotNotesInput.value.trim() }); 
-            updateChart(); 
+            await apiRequest('/api/plots', 'POST', { girl_id: parseInt(selectedGirlIds[0]), hot_score: parseFloat(hotScoreInput.value), crazy_score: parseFloat(crazyScoreInput.value), plot_date: plotDateInput.value ? new Date(plotDateInput.value).toISOString() : new Date().toISOString(), notes: plotNotesInput.value.trim() });
+            updateChart();
             plotNotesInput.value = '';
             plotDateInput.value = '';
         } catch (error) {
@@ -481,35 +521,37 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    editPlotForm.addEventListener('submit', async(e) => { 
-        e.preventDefault(); 
-        const plotData = { hot_score: parseFloat(editHotScoreInput.value), crazy_score: parseFloat(editCrazyScoreInput.value), plot_date: editPlotDateInput.value ? new Date(editPlotDateInput.value).toISOString() : new Date().toISOString(), notes: editPlotNotesInput.value.trim() }; 
+    editPlotForm.addEventListener('submit', async(e) => {
+        e.preventDefault();
+        const plotData = { hot_score: parseFloat(editHotScoreInput.value), crazy_score: parseFloat(editCrazyScoreInput.value), plot_date: editPlotDateInput.value ? new Date(editPlotDateInput.value).toISOString() : new Date().toISOString(), notes: editPlotNotesInput.value.trim() };
         try {
-            await apiRequest(`/api/plots/${editPlotIdInput.value}`, 'PUT', plotData); 
-            editPlotModal.hide(); 
-            updateChart(); 
+            await apiRequest(`/api/plots/${editPlotIdInput.value}`, 'PUT', plotData);
+            editPlotModal.hide();
+            updateChart();
         } catch (error) {
             alert(`Error updating point: ${error.message}`);
         }
     });
 
-    deletePlotBtn.addEventListener('click', async () => { 
-        if (confirm('Are you sure you want to permanently delete this data point?')) { 
-            try {
-                await apiRequest(`/api/plots/${editPlotIdInput.value}`, 'DELETE'); 
-                editPlotModal.hide(); 
-                updateChart(); 
-            } catch (error) {
-                alert(`Error deleting point: ${error.message}`);
+    if (deletePlotBtn) {
+        deletePlotBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to permanently delete this data point?')) {
+                try {
+                    await apiRequest(`/api/plots/${editPlotIdInput.value}`, 'DELETE');
+                    editPlotModal.hide();
+                    updateChart();
+                } catch (error) {
+                    alert(`Error deleting point: ${error.message}`);
+                }
             }
-        } 
-    });
+        });
+    }
 
-    [hotScoreInput, crazyScoreInput, editHotScoreInput, editCrazyScoreInput].forEach(input => { 
-        input.addEventListener('input', () => { 
-            hotValueDisplay.textContent = hotScoreInput.value; crazyValueDisplay.textContent = crazyScoreInput.value; 
-            editHotValueDisplay.textContent = editHotScoreInput.value; editCrazyValueDisplay.textContent = editCrazyScoreInput.value; 
-        }); 
+    [hotScoreInput, crazyScoreInput, editHotScoreInput, editCrazyScoreInput].forEach(input => {
+        input.addEventListener('input', () => {
+            hotValueDisplay.textContent = hotScoreInput.value; crazyValueDisplay.textContent = crazyScoreInput.value;
+            editHotValueDisplay.textContent = editHotScoreInput.value; editCrazyValueDisplay.textContent = editCrazyScoreInput.value;
+        });
     });
 
     // --- INITIALIZATION ---

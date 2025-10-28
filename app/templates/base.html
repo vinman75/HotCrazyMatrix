@@ -1,19 +1,41 @@
 <!doctype html>
-<html lang="en" data-bs-theme="dark">
+<html lang="en" data-bs-theme="{{ request.cookies.get('theme', 'dark') }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#0d6efd">
     <title>{{ title }} - Hot Crazy Matrix</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='site.webmanifest') }}">
     <script>
         (function () {
+            function getCookieTheme() {
+                var match = document.cookie.match(/(?:^|; )theme=([^;]+)/);
+                return match ? match[1] : null;
+            }
+            var theme = 'dark';
             try {
-                var savedTheme = localStorage.getItem('theme');
-                if (savedTheme) {
-                    document.documentElement.setAttribute('data-bs-theme', savedTheme);
+                var stored = localStorage.getItem('theme');
+                if (stored) {
+                    theme = stored;
+                } else {
+                    var cookieTheme = getCookieTheme();
+                    if (cookieTheme) {
+                        theme = cookieTheme;
+                    }
                 }
             } catch (err) {
+                var fallbackCookieTheme = getCookieTheme();
+                if (fallbackCookieTheme) {
+                    theme = fallbackCookieTheme;
+                }
+            }
+
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            var themeMeta = document.querySelector('meta[name="theme-color"]');
+            if (themeMeta) {
+                themeMeta.setAttribute('content', theme === 'dark' ? '#0d1117' : '#f8f9fa');
             }
         })();
     </script>
@@ -24,11 +46,11 @@
 <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">Hot Crazy Matrix</a>
+            <a class="navbar-brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">Hot Crazy Matrix</a>
             <div class="ms-auto d-flex align-items-center">
-                <button class="btn nav-link me-3" id="theme-toggler" type="button">
-                    <i class="bi bi-sun-fill d-none" id="theme-light-icon"></i>
-                    <i class="bi bi-moon-stars-fill" id="theme-dark-icon"></i>
+                <button class="btn nav-link me-3" id="theme-toggler" type="button" aria-label="Toggle theme">
+                    <i class="bi bi-sun-fill d-none" id="theme-light-icon" aria-hidden="true"></i>
+                    <i class="bi bi-moon-stars-fill" id="theme-dark-icon" aria-hidden="true"></i>
                 </button>
                 {% if current_user.is_authenticated %}
                 <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
