@@ -50,8 +50,6 @@ def delete_account():
         
         # Get the actual user object from the database BEFORE logging out.
         user_to_delete = User.query.get(current_user.id)
-        
-        # Now that we have the real object, log the user out.
         logout_user()
         
         # Delete the user object we retrieved earlier.

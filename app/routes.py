@@ -243,9 +243,9 @@ def delete_plot(plot_id):
 @login_required
 def get_averages():
     girl_ids_str = request.args.get("girl_ids", "")
+
     if not girl_ids_str:
         return jsonify({})
-
     try:
         girl_ids = [int(item) for item in girl_ids_str.split(",") if item]
     except ValueError:
