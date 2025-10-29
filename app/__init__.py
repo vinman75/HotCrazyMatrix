@@ -1,10 +1,9 @@
-from flask import Flask, jsonify
+from flask import Flask
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
-from werkzeug.exceptions import HTTPException
 import os
 
 db = SQLAlchemy()
@@ -38,18 +37,4 @@ def create_app(config_class=Config):
     from app.routes import bp as main_bp
     app.register_blueprint(main_bp)
 
-    # Custom JSON error handler
-    @app.errorhandler(HTTPException)
-    def handle_exception(e):
-        response = e.get_response()
-        response.data = jsonify({
-            "code": e.code,
-            "name": e.name,
-            "message": e.description,
-        }).data
-        response.content_type = "application/json"
-        return response
-
     return app
-
-from app import models
