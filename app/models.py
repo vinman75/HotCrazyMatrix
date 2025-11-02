@@ -11,6 +11,8 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     password_hash = db.Column(db.String(256))
+    # MODIFICATION: Added server_default for database-level defaulting
+    timezone = db.Column(db.String(64), nullable=False, default='UTC', server_default='UTC')
     girls = db.relationship('Girl', backref='owner', lazy='dynamic', cascade="all, delete-orphan")
 
     def set_password(self, password):

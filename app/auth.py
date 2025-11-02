@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from app import db
 from app.models import User
-from app.forms import LoginForm, RegistrationForm, DeleteAccountForm
+from app.forms import LoginForm, RegistrationForm, DeleteAccountForm, SettingsForm
 
 bp = Blueprint('auth', __name__)
 
@@ -39,6 +39,19 @@ def register():
         return redirect(url_for('auth.login'))
     return render_template('register.html', title='Register', form=form)
 
+@bp.route('/settings', methods=['POST'])
+@login_required
+def settings():
+    form = SettingsForm()
+    if form.validate_on_submit():
+        current_user.timezone = form.timezone.data
+        db.session.commit()
+        flash('Your settings have been updated.')
+    else:
+        flash('There was an error updating your settings.', 'danger')
+    return redirect(url_for('main.dashboard'))
+
+
 @bp.route('/delete_account', methods=['GET', 'POST'])
 @login_required
 def delete_account():
@@ -48,17 +61,14 @@ def delete_account():
             flash('Incorrect password. Account not deleted.')
             return redirect(url_for('auth.delete_account'))
         
-        # Get the actual user object from the database BEFORE logging out.
         user_to_delete = User.query.get(current_user.id)
         logout_user()
         
-        # Delete the user object we retrieved earlier.
         if user_to_delete:
             db.session.delete(user_to_delete)
             db.session.commit()
             flash('Your account has been permanently deleted.')
         else:
-            # This case should ideally not be reached
             flash('An error occurred. Could not find user to delete.')
 
         return redirect(url_for('auth.login'))

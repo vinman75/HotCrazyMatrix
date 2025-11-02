@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
+<script>
+    window.userTimezone = '{{ current_user.timezone|e }}';
+</script>
+
 <div class="row g-4">
     <div class="col-md-7 col-lg-8 order-md-2" id="chart-card-container">
         <div class="card h-100">
@@ -62,6 +66,22 @@
                 </h2>
                 <div id="collapseAccount" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#controlsAccordion">
                     <div class="accordion-body">
+                        <!-- MODIFICATION: This entire form block is now correctly added -->
+                        <h5>Timezone</h5>
+                        <form action="{{ url_for('auth.settings') }}" method="post" class="mb-4">
+                            {{ settings_form.hidden_tag() }}
+                            <div class="mb-2">
+                                {{ settings_form.timezone.label(class="form-label") }}
+                                {{ settings_form.timezone(class="form-select" + (" is-invalid" if settings_form.timezone.errors else "")) }}
+                                {% for error in settings_form.timezone.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            {{ settings_form.submit(class="btn btn-primary w-100") }}
+                        </form>
+                        <hr>
+                        <!-- End of Modification -->
+
                         <h5>Delete Account</h5>
                         <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
                         <a href="{{ url_for('auth.delete_account') }}" class="btn btn-danger w-100">Delete My Account</a>

@@ -46,11 +46,12 @@ The user interface is built with a "liquid" or responsive layout that automatica
 *   **The Vickie Mendoza Diagonal**: The infamous dividing line is clearly marked, ensuring you never stray into the No-Go Zone unprepared.
 *   **Advanced Zone Calculation**: The system automatically calculates the average position of each subject, clearly identifying their location in the Fun Zone, Wife Zone, Danger Zone, or even the mythical Unicorn Zone.
 *   **Day & Night Research Modes**: Toggle between light and dark themes for comfortable data analysis, no matter the hour.
+*   **Global Timezone Synchronization**: Conduct your research from anywhere in the world. Set your personal timezone in the account settings to ensure all your data points and timestamps are displayed accurately in your local time.
 *   **Dockerized & Portable Lab**: The entire application is containerized, so you can set up your own private research lab anywhere.
 
 ## 🧪 The Lab (Tech Stack)
 
-*   **Backend**: Flask, Gunicorn
+*   **Backend**: Flask, Gunicorn, pytz
 *   **Database**: SQLAlchemy, SQLite, Flask-Migrate
 *   **Frontend**: Bootstrap 5, Chart.js, JavaScript
 *   **Deployment**: Docker & Docker Compose
@@ -66,3 +67,4 @@ Get the code on your local machine or server.
 ```bash
 git clone [YOUR_REPOSITORY_URL]
 cd [YOUR_PROJECT_DIRECTORY]
+```

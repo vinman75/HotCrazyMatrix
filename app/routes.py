@@ -1,11 +1,14 @@
 from datetime import datetime
 import re
+import pytz
 
 from flask import Blueprint, abort, jsonify, render_template, request
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app import db
+# This import is essential
+from app.forms import SettingsForm
 from app.models import Girl, Plot
 
 
@@ -20,7 +23,6 @@ def validate_plot_data(data, *, is_update: bool = False):
 
     if not is_update and "girl_id" not in data:
         errors["girl_id"] = "girl_id is required."
-
     # Validate scores
     raw_hot_score = data.get("hot_score")
     raw_crazy_score = data.get("crazy_score")
@@ -52,8 +54,6 @@ def validate_plot_data(data, *, is_update: bool = False):
                 errors["crazy_score"] = "Crazy score must be between 4 and 10."
             else:
                 cleaned["crazy_score"] = crazy_score
-
-    # Validate notes length/type
     if "notes" in data:
         notes = data["notes"]
         if notes is None:
@@ -66,19 +66,12 @@ def validate_plot_data(data, *, is_update: bool = False):
                 errors["notes"] = "Notes cannot exceed 500 characters."
             else:
                 cleaned["notes"] = trimmed_notes
-
-    # Validate date format if provided
     plot_date_str = data.get("plot_date")
     if plot_date_str:
         try:
-            if not re.match(
-                r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d*)?)?(Z|[+-]\d{2}:\d{2})?$",
-                plot_date_str,
-            ):
-                raise ValueError
-            datetime.fromisoformat(plot_date_str.replace("Z", "+00:00"))
+            datetime.fromisoformat(plot_date_str)
         except (TypeError, ValueError):
-            errors["plot_date"] = "Invalid date format. Please use ISO 8601 format."
+            errors["plot_date"] = "Invalid date format."
 
     if errors:
         error_message = "; ".join(f"{field}: {message}" for field, message in errors.items())
@@ -90,10 +83,13 @@ def validate_plot_data(data, *, is_update: bool = False):
 @bp.route("/")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", title="Dashboard")
+    # MODIFICATION: This block is now correctly implemented.
+    settings_form = SettingsForm(obj=current_user)
+    settings_form.timezone.data = current_user.timezone
+    return render_template("dashboard.html", title="Dashboard", settings_form=settings_form)
 
 
-# --- Girl CRUD ---
+# ... (get_girls, create_girl, update_girl, delete_girl) ...
 @bp.route("/api/girls", methods=["GET"])
 @login_required
 def get_girls():
@@ -143,7 +139,6 @@ def delete_girl(girl_id):
     db.session.commit()
     return "", 204
 
-
 # --- Plot CRUD ---
 @bp.route("/api/girls/<int:girl_id>/plots", methods=["GET"])
 @login_required
@@ -166,7 +161,6 @@ def get_plots(girl_id):
         ]
     )
 
-
 @bp.route("/api/plots", methods=["POST"])
 @login_required
 def create_plot():
@@ -178,11 +172,13 @@ def create_plot():
         abort(403)
 
     plot_date_str = data.get("plot_date")
-    plot_date = (
-        datetime.fromisoformat(plot_date_str.replace("Z", "+00:00"))
-        if plot_date_str
-        else datetime.utcnow()
-    )
+    if plot_date_str:
+        naive_dt = datetime.fromisoformat(plot_date_str)
+        user_timezone = pytz.timezone(current_user.timezone)
+        aware_dt = user_timezone.localize(naive_dt)
+        plot_date = aware_dt.astimezone(pytz.utc)
+    else:
+        plot_date = datetime.utcnow().replace(tzinfo=pytz.utc)
 
     notes = cleaned.get("notes") if "notes" in cleaned else None
 
@@ -220,11 +216,13 @@ def update_plot(plot_id):
 
     plot_date_str = data.get("plot_date")
     if plot_date_str:
-        plot.plot_date = datetime.fromisoformat(plot_date_str.replace("Z", "+00:00"))
+        naive_dt = datetime.fromisoformat(plot_date_str)
+        user_timezone = pytz.timezone(current_user.timezone)
+        aware_dt = user_timezone.localize(naive_dt)
+        plot.plot_date = aware_dt.astimezone(pytz.utc)
 
     db.session.commit()
     return jsonify({"id": plot.id})
-
 
 @bp.route("/api/plots/<int:plot_id>", methods=["DELETE"])
 @login_required
@@ -238,7 +236,6 @@ def delete_plot(plot_id):
     return "", 204
 
 
-# --- Average Calculation ---
 @bp.route("/api/averages", methods=["GET"])
 @login_required
 def get_averages():

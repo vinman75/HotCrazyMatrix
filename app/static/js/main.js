@@ -1,8 +1,56 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- GLOBAL VARIABLES & STATE ---
     let chart;
     const colors = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
     let preloadedImages = {}; // Will store { light: Image, dark: Image }
+
+    const userTimezone = window.userTimezone || 'UTC';
+
+    /**
+     * Converts a UTC ISO date string to a string formatted for a datetime-local input
+     * in the user's specified timezone.
+     * @param {string} utcIsoString - The UTC date string from the API (e.g., "2025-11-03T10:30:00Z").
+     * @returns {string} A string formatted as "YYYY-MM-DDTHH:MM".
+     */
+    function formatUTCDateForInput(utcIsoString) {
+        if (!utcIsoString) return '';
+        try {
+            const date = new Date(utcIsoString);
+
+            // This is a reliable way to get date parts in the target timezone.
+            // We use 'en-CA' locale as a trick to get a YYYY-MM-DD format,
+            // which matches the datetime-local input format.
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: userTimezone,
+            };
+
+            const formatter = new Intl.DateTimeFormat('en-CA', options);
+            const parts = formatter.formatToParts(date);
+
+            const partMap = {};
+            for (const part of parts) {
+                if (part.type !== 'literal') {
+                    partMap[part.type] = part.value;
+                }
+            }
+            
+            // The hour can sometimes be '24' for midnight, which is invalid for inputs. It should be '00'.
+            if (partMap.hour === '24') {
+                partMap.hour = '00';
+            }
+
+            return `${partMap.year}-${partMap.month}-${partMap.day}T${partMap.hour}:${partMap.minute}`;
+        } catch (e) {
+            console.error("Error formatting date:", e);
+            // Fallback for safety, though it might show the wrong time
+            return utcIsoString.slice(0, 16);
+        }
+    }
 
     // --- DOM ELEMENT SELECTORS ---
     const htmlEl = document.documentElement;
@@ -320,7 +368,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- DATA & EVENT HANDLER FUNCTIONS ---
     function toggleAddPlotForm(enabled) {
         const fieldset = addPlotForm.querySelector('fieldset') || addPlotForm;
         Array.from(fieldset.elements).forEach(el => el.disabled = !enabled);
@@ -376,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (isInside) return zone;
         }
-        return null; // Should not happen if zones cover the whole chart
+        return null;
     }
 
     async function updateAverages() {
@@ -481,9 +528,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (elements.length > 0) {
             const { datasetIndex, index } = elements[0];
             const plotData = chart.data.datasets[datasetIndex].data[index];
-            editPlotIdInput.value = plotData.id; editHotScoreInput.value = plotData.x; editCrazyScoreInput.value = plotData.y;
-            editHotValueDisplay.textContent = plotData.x; editCrazyValueDisplay.textContent = plotData.y;
-            editPlotDateInput.value = plotData.date.slice(0, 16); editPlotNotesInput.value = plotData.notes;
+            editPlotIdInput.value = plotData.id; 
+            editHotScoreInput.value = plotData.x; 
+            editCrazyScoreInput.value = plotData.y;
+            editHotValueDisplay.textContent = plotData.x; 
+            editCrazyValueDisplay.textContent = plotData.y;
+            editPlotDateInput.value = formatUTCDateForInput(plotData.date);
+            editPlotNotesInput.value = plotData.notes;
             editPlotModal.show();
         } else {
             const selectedGirlIds = Array.from(document.querySelectorAll('.girl-checkbox:checked')).map(cb => cb.value);
@@ -495,7 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (hotScore >= 0 && hotScore <= 10 && crazyScore >= 4 && crazyScore <= 10) {
                 if (confirm(`Add point (Hot: ${hotScore}, Crazy: ${crazyScore}) for the selected girl?`)) {
                     try {
-                        await apiRequest('/api/plots', 'POST', { girl_id: parseInt(selectedGirlIds[0]), hot_score: hotScore, crazy_score: crazyScore, plot_date: new Date().toISOString(), notes: '' });
+                        await apiRequest('/api/plots', 'POST', { 
+                            girl_id: parseInt(selectedGirlIds[0]), 
+                            hot_score: hotScore, 
+                            crazy_score: crazyScore, 
+                            plot_date: null,
+                            notes: '' 
+                        });
                         updateChart();
                     } catch (error) {
                         alert(`Error adding point: ${error.message}`);
@@ -512,7 +569,14 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please select exactly one girl from the list to add a point for."); return;
         }
         try {
-            await apiRequest('/api/plots', 'POST', { girl_id: parseInt(selectedGirlIds[0]), hot_score: parseFloat(hotScoreInput.value), crazy_score: parseFloat(crazyScoreInput.value), plot_date: plotDateInput.value ? new Date(plotDateInput.value).toISOString() : new Date().toISOString(), notes: plotNotesInput.value.trim() });
+            const plotDateValue = plotDateInput.value || null;
+            await apiRequest('/api/plots', 'POST', { 
+                girl_id: parseInt(selectedGirlIds[0]), 
+                hot_score: parseFloat(hotScoreInput.value), 
+                crazy_score: parseFloat(crazyScoreInput.value), 
+                plot_date: plotDateValue, 
+                notes: plotNotesInput.value.trim() 
+            });
             updateChart();
             plotNotesInput.value = '';
             plotDateInput.value = '';
@@ -523,7 +587,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     editPlotForm.addEventListener('submit', async(e) => {
         e.preventDefault();
-        const plotData = { hot_score: parseFloat(editHotScoreInput.value), crazy_score: parseFloat(editCrazyScoreInput.value), plot_date: editPlotDateInput.value ? new Date(editPlotDateInput.value).toISOString() : new Date().toISOString(), notes: editPlotNotesInput.value.trim() };
+        const plotDateValue = editPlotDateInput.value || null;
+        const plotData = { 
+            hot_score: parseFloat(editHotScoreInput.value), 
+            crazy_score: parseFloat(editCrazyScoreInput.value), 
+            plot_date: plotDateValue, 
+            notes: editPlotNotesInput.value.trim() 
+        };
         try {
             await apiRequest(`/api/plots/${editPlotIdInput.value}`, 'PUT', plotData);
             editPlotModal.hide();

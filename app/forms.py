@@ -1,6 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import BooleanField, PasswordField, StringField, SubmitField
+from wtforms import BooleanField, PasswordField, StringField, SubmitField, SelectField
 from wtforms.validators import DataRequired, EqualTo, Length, ValidationError
+import pytz
 
 from app.models import User
 
@@ -39,3 +40,7 @@ class RegistrationForm(FlaskForm):
 class DeleteAccountForm(FlaskForm):
     password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Delete My Account Permanently")
+
+class SettingsForm(FlaskForm):
+    timezone = SelectField('Timezone', choices=[(tz, tz) for tz in pytz.all_timezones], validators=[DataRequired()])
+    submit = SubmitField('Save Settings')
